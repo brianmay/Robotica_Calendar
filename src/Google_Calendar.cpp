@@ -290,7 +290,7 @@ bool drawEvent(entry *event, int day, int beginY, int max_y, int *y_next)
 {
     // Upper left coordintes
     int x1 = OUTSIDE_BORDER_WIDTH + INSIDE_BORDER_WIDTH + COLUMN_WIDTH * day;
-    int y1 = beginY + INSIDE_BORDER_HEIGHT;
+    int y1 = beginY + INSIDE_SPACING_HEIGHT;
     int max_width_text = COLUMN_WIDTH - 2*INSIDE_BORDER_WIDTH;
     display.setCursor(x1 + INSIDE_BORDER_WIDTH, y1 + 30);
 
