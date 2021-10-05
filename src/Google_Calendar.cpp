@@ -291,6 +291,7 @@ bool drawEvent(entry *event, int day, int beginY, int max_y, int *y_next)
     // Upper left coordintes
     int x1 = OUTSIDE_BORDER_WIDTH + INSIDE_BORDER_WIDTH + COLUMN_WIDTH * day;
     int y1 = beginY + INSIDE_BORDER_HEIGHT;
+    int max_width_text = COLUMN_WIDTH - 2*INSIDE_BORDER_WIDTH;
     display.setCursor(x1 + INSIDE_BORDER_WIDTH, y1 + 30);
 
     // Setting text font
@@ -317,7 +318,7 @@ bool drawEvent(entry *event, int day, int beginY, int max_y, int *y_next)
         display.getTextBounds(line, 0, 0, &xt1, &yt1, &w, &h);
 
         // Char out of bounds, put in next line
-        if (w > COLUMN_WIDTH - 2*INSIDE_BORDER_WIDTH - 30)
+        if (w > max_width_text)
         {
             // if there was a space 5 chars before, break line there
             if (n - lastSpace < 5)
@@ -365,7 +366,7 @@ bool drawEvent(entry *event, int day, int beginY, int max_y, int *y_next)
             // Gets text bounds
             display.getTextBounds(line, 0, 0, &xt1, &yt1, &w, &h);
 
-            if (w > COLUMN_WIDTH - 2*INSIDE_BORDER_WIDTH)
+            if (w > max_width_text)
             {
                 for (int j = i - 1; j > max(-1, i - 4); --j)
                     line[j] = '.';
