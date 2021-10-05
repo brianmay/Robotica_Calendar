@@ -487,11 +487,11 @@ void drawData()
     // Display not shown events info
     for (int i = 0; i < COLUMNS; ++i)
     {
-        if (clogged[i] || 1)
+        if (clogged[i])
         {
             // Draw notification showing that there are more events than drawn ones
             display.fillRoundRect(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_BORDER_WIDTH, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_BORDER_WIDTH - 24, COLUMN_WIDTH - 2*INSIDE_BORDER_WIDTH, 20, 10, 0);
-            display.setCursor(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_BORDER_WIDTH + 3, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_BORDER_WIDTH - 24 + 13);
+            display.setCursor(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_BORDER_WIDTH + 10, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_BORDER_WIDTH - 24 + 15);
             display.setTextColor(7, 0);
             display.setFont(&FreeSans9pt7b);
             display.print(cloggedCount[i]);
