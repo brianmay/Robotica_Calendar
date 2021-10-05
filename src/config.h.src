@@ -1,0 +1,30 @@
+// CHANGE HERE ---------------
+
+char ssid[] = "";
+char pass[] = "";
+char calendarURL[] = "";
+
+//Australia Eastern Time Zone (Sydney, Melbourne)
+TimeChangeRule aEDT = {"AEDT", First, Sun, Oct, 2, 660};    //UTC + 11 hours
+TimeChangeRule aEST = {"AEST", First, Sun, Apr, 3, 600};    //UTC + 10 hours
+Timezone timezone(aEDT, aEST);
+
+// Set to 3 to flip the screen 180 degrees
+#define ROTATION 0
+#define COLUMNS 5
+#define SCREEN_WIDTH  E_INK_WIDTH
+#define SCREEN_HEIGHT E_INK_HEIGHT
+#define OUTSIDE_BORDER_WIDTH 3
+#define OUTSIDE_BORDER_TOP 30
+#define OUTSIDE_BORDER_BOTTOM 3
+#define INSIDE_BORDER_WIDTH 4
+#define INSIDE_BORDER_HEIGHT 4
+#define HEADER_HEIGHT 30
+#define COLUMN_WIDTH ((int)(SCREEN_WIDTH-OUTSIDE_BORDER_WIDTH-OUTSIDE_BORDER_WIDTH)/COLUMNS)
+
+//---------------------------
+
+// Delay between API calls
+#define DELAY_MS 1 * 60000
+
+
