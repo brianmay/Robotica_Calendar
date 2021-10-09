@@ -70,11 +70,12 @@ void drawData(String &data);
 void setup()
 {
     Serial.begin(115200);
-    Serial.println("Starting");
+    Serial.println("Starting.");
 
     // Initial display settings
     display.begin();
 
+    Serial.println("Configuring display.");
     display.setRotation(ROTATION);
     display.setTextWrap(false);
     display.setTextColor(0, 7);
@@ -82,6 +83,7 @@ void setup()
     if (refreshes == 0)
     {
         // Welcome screen
+        Serial.println("Drawing welcome screen.");
         display.setCursor(5, 230);
         display.setTextSize(2);
         display.println(F("Welcome to Inkplate 10 Google Calendar!"));
@@ -90,11 +92,15 @@ void setup()
         display.display();
     }
 
+    Serial.println("Going to sleep.");
     delay(5000);
+
+    Serial.println("Starting network stuff.");
     network.begin();
 
     // Keep trying to get data if it fails the first time
     String data;
+    Serial.println("Getting data.");
     while (!network.getData(&data))
     {
         Serial.println("Failed getting data, retrying");
@@ -102,22 +108,25 @@ void setup()
     }
 
     // Initial screen clearing
-    display.println(F("Connected"));
+    Serial.println("Got data.");
     display.clearDisplay();
 
     // Drawing all data, functions for that are above
+    Serial.println("Drawing.");
     drawInfo();
     drawGrid();
     drawData(data);
     drawTime();
 
     // Can't do partial due to deepsleep
+    Serial.println("Updating display.");
     display.display();
 
     // Increment refreshes
     ++refreshes;
 
     // Go to sleep before checking again
+    Serial.println("Going to sleep. Goodnight.");
     esp_sleep_enable_timer_wakeup(1000ll * DELAY_MS);
     (void)esp_deep_sleep_start();
 }
