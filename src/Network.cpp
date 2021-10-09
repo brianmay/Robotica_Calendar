@@ -23,7 +23,10 @@ Distributed as-is; no warranty is given.
 void Network::begin()
 {
     // Initiating wifi, like in BasicHttpClient example
+    Serial.println(F("Setting wifi mode..."));
     WiFi.mode(WIFI_STA);
+
+    Serial.println(F("Starting wifi network..."));
     WiFi.begin(ssid, pass);
 
     int cnt = 0;
@@ -39,12 +42,12 @@ void Network::begin()
 
         if (cnt == 10)
         {
-            Serial.println("Can't connect to WIFI, restarting");
+            Serial.println(" Can't connect to WIFI, restarting.");
             delay(100);
             ESP.restart();
         }
     }
-    Serial.println(F(" connected"));
+    Serial.println(F(" connected."));
 
     // Find internet time
     setTime();
@@ -64,7 +67,7 @@ bool Network::getData(String *data)
         delay(5000);
 
         int cnt = 0;
-        Serial.println(F("Waiting for WiFi to reconnect..."));
+        Serial.print(F("Waiting for WiFi to reconnect..."));
         while ((WiFi.status() != WL_CONNECTED))
         {
             // Prints a dot every second that wifi isn't connected
@@ -77,11 +80,12 @@ bool Network::getData(String *data)
 
             if (cnt == 10)
             {
-                Serial.println("Can't connect to WIFI, restart initiated.");
+                Serial.println(" Can't connect to WIFI, restart initiated.");
                 delay(100);
                 ESP.restart();
             }
         }
+        Serial.println(F(" connected."));
     }
 
     // Http object used to make get request
