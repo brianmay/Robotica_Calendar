@@ -268,10 +268,12 @@ bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
     display.setFont(&FreeSans9pt7b);
 
     // Print time
+    String time = event.start.format("%H:%M") + " to " + event.end.format("%H:%M");
+
     // also, if theres a location print it
     if (event.location.length() > 0)
     {
-        display.println(event.start.format("%c").c_str());
+        display.println(time.c_str());
 
         display.setCursor(x1 + 5, display.getCursorY());
 
@@ -300,7 +302,7 @@ bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
     }
     else
     {
-        display.print(event.start.format("%c").c_str());
+        display.print(time.c_str());
     }
 
     int bx1 = x1 + 1;
