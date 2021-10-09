@@ -70,7 +70,6 @@ void drawInfo();
 void drawTime();
 void drawGrid();
 bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next);
-int cmp(const void *a, const void *b);
 void drawData(String &data);
 
 void setup()
