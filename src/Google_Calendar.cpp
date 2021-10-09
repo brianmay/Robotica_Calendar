@@ -75,6 +75,7 @@ void drawData(String &data);
 void setup()
 {
     Serial.begin(115200);
+    Serial.println("Starting");
 
     // Initial display settings
     display.begin();
@@ -86,11 +87,9 @@ void setup()
     if (refreshes == 0)
     {
         // Welcome screen
-        display.setCursor(0, 0);
-        display.println(F("Top!"));
         display.setCursor(5, 230);
         display.setTextSize(2);
-        display.println(F("Welcome to Inkplate 10 Google Calendar example!"));
+        display.println(F("Welcome to Inkplate 10 Google Calendar!"));
         display.setCursor(5, 250);
         display.println(F("Connecting to WiFi..."));
         display.display();
