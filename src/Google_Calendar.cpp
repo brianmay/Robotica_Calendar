@@ -62,7 +62,7 @@ struct entry
     String location;
     uICAL::DateTime start;
     uICAL::DateTime end;
-    int day = -1;
+    int day;
 };
 
 // All our functions declared below setup and loop
@@ -374,9 +374,8 @@ void drawData(String &data)
             entry.end = utc_datetime_to_local(end);
 
             uICAL::dhms_t start_dhms = entry.start.convert_to_dhms();
-            int day = std::get<0>(start_dhms) - std::get<0>(begin_dhms);
-            if (day > 0 && day < COLUMNS) {
-                entry.day = day;
+            entry.day = std::get<0>(start_dhms) - std::get<0>(begin_dhms);
+            if (entry.day > 0 && entry.day < COLUMNS) {
                 entries.push_back(entry);
             }
         }
