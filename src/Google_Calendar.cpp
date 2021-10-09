@@ -34,6 +34,9 @@
 // Includes
 #include <algorithm>
 #include <ctime>
+#include <uICAL.h>
+#include <uICAL/datecalc.h>
+#include <sstream>
 
 #include "Network.h"
 #include "config.h"
@@ -49,37 +52,30 @@ Inkplate display(INKPLATE_3BIT);
 Network network;
 
 // Variables for time and raw event info
-char date[64];
-char *data;
+// char date[64];
+// char *data;
 
 // Struct for storing calender event info
 struct entry
 {
-    char name[128];
-    char time[128];
-    char location[128];
+    String summary;
+    String location;
+    uICAL::DateTime start;
+    uICAL::DateTime end;
     int day = -1;
-    int timeStamp;
 };
-
-// Here we store calendar entries
-int entriesNum = 0;
-entry entries[128];
 
 // All our functions declared below setup and loop
 void drawInfo();
 void drawTime();
 void drawGrid();
-void getToFrom(char *dst, char *from, char *to, int *day, int *timeStamp);
-bool drawEvent(entry *event, int day, int beginY, int max_y, int *y_next);
+bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next);
 int cmp(const void *a, const void *b);
-void drawData();
+void drawData(String &data);
 
 void setup()
 {
     Serial.begin(115200);
-
-    data = (char *)ps_malloc(2000000LL);
 
     // Initial display settings
     display.begin();
@@ -105,19 +101,21 @@ void setup()
     network.begin();
 
     // Keep trying to get data if it fails the first time
-    while (!network.getData(data))
+    String data;
+    while (!network.getData(&data))
     {
         Serial.println("Failed getting data, retrying");
         delay(1000);
     }
 
     // Initial screen clearing
+    display.println(F("Connected"));
     display.clearDisplay();
 
     // Drawing all data, functions for that are above
     drawInfo();
     drawGrid();
-    drawData();
+    drawData(data);
     drawTime();
 
     // Can't do partial due to deepsleep
@@ -146,23 +144,8 @@ void drawInfo()
 
     display.setCursor(20, 20);
 
-    // Find email in raw data
-    char temp[64];
-    char *start = strstr(data, "X-WR-CALNAME:");
-
-    // If not found return
-    if (!start)
-        return;
-
-    // Find where it ends
-    start += 13;
-    char *end = strchr(start, '\n');
-
-    strncpy(temp, start, end - start - 1);
-    temp[end - start - 1] = 0;
-
     // Print it
-    display.println(temp);
+    display.println("Common Calendar");
 }
 
 // Drawing what time it is
@@ -176,12 +159,10 @@ void drawTime()
     display.setCursor(500, 20);
 
     // Our function to get time
-    network.getTime(date, &timezone, 0);
+    time_t now_secs = timezone.toLocal(time(nullptr));
+    uICAL::DateTime now = now_secs;
 
-    int t = date[16];
-    date[16] = 0;
-    display.println(date);
-    date[16] = t;
+    display.println(now.format("%c").c_str());
 }
 
 // Draw lines in which to put events
@@ -216,77 +197,19 @@ void drawGrid()
         display.setFont(&FreeSans9pt7b);
 
         // Display day info using time offset
-        char temp[64];
-        network.getTime(temp, &timezone, i * 3600L * 24);
-        temp[10] = 0;
+        time_t day_time_secs = timezone.toLocal(time(nullptr)) + i * 3600L * 24;
+        uICAL::dhms_t day_time_dhms = uICAL::to_dhms(day_time_secs);
+        day_time_secs = uICAL::to_seconds(std::get<0>(day_time_dhms), 0, 0, 0);
+        uICAL::DateTime day_time = day_time_secs;
 
         // calculate where to put text and print it
         display.setCursor(x1 + i * COLUMN_WIDTH + INSIDE_BORDER_WIDTH, y1 + HEADER_HEIGHT - 6);
-        display.println(temp);
-    }
-}
-
-// Format event times, example 13:00 to 14:00
-void getToFrom(char *dst, char *from, char *to, int *day, int *timeStamp)
-{
-    // ANSI C time struct
-    struct tm ltm = {0}, ltm2 = {0};
-    char temp[128], temp2[128];
-    strncpy(temp, from, 16);
-    temp[16] = 0;
-
-    // https://github.com/esp8266/Arduino/issues/5141, quickfix
-    memmove(temp + 5, temp + 4, 16);
-    memmove(temp + 8, temp + 7, 16);
-    memmove(temp + 14, temp + 13, 16);
-    memmove(temp + 16, temp + 15, 16);
-    temp[4] = temp[7] = temp[13] = temp[16] = '-';
-
-    // time.h function
-    strptime(temp, "%Y-%m-%dT%H-%M-%SZ", &ltm);
-
-    // create start and end event structs
-    struct tm event, event2;
-    time_t epoch = timezone.toLocal(mktime(&ltm));
-    gmtime_r(&epoch, &event);
-    strncpy(dst, asctime(&event) + 11, 5);
-
-    dst[5] = '-';
-
-    strncpy(temp2, to, 16);
-    temp2[16] = 0;
-
-    // Same as above
-
-    // https://github.com/esp8266/Arduino/issues/5141, quickfix
-    memmove(temp2 + 5, temp2 + 4, 16);
-    memmove(temp2 + 8, temp2 + 7, 16);
-    memmove(temp2 + 14, temp2 + 13, 16);
-    memmove(temp2 + 16, temp2 + 15, 16);
-    temp2[4] = temp2[7] = temp2[13] = temp2[16] = '-';
-
-    strptime(temp2, "%Y-%m-%dT%H-%M-%SZ", &ltm2);
-
-    time_t epoch2 = timezone.toLocal(mktime(&ltm2));
-    gmtime_r(&epoch2, &event2);
-    strncpy(dst + 6, asctime(&event2) + 11, 5);
-
-    dst[11] = 0;
-
-    {
-        time_t nowSecs = timezone.toLocal(time(nullptr));
-        int nowDays = nowSecs / (24 * 60 * 60);
-        int eventDays = epoch / (24 * 60 * 60);
-
-        *day = eventDays - nowDays;
-        if (*day < 0 || *day >= COLUMNS) {
-            *day = -1;
-        }
+        display.println(day_time.format("%a %d/%h").c_str());
     }
 }
 
 // Function to draw event
-bool drawEvent(entry *event, int day, int beginY, int max_y, int *y_next)
+bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
 {
     // Upper left coordintes
     int x1 = OUTSIDE_BORDER_WIDTH + INSIDE_BORDER_WIDTH + COLUMN_WIDTH * day;
@@ -303,10 +226,10 @@ bool drawEvent(entry *event, int day, int beginY, int max_y, int *y_next)
 
     // Insert line brakes into setTextColor
     int lastSpace = -100;
-    for (int i = 0; i < min((size_t)64, strlen(event->name)); ++i)
+    for (int i = 0; i < event.summary.length(); ++i)
     {
         // Copy name letter by letter and check if it overflows space given
-        line[n] = event->name[i];
+        line[n] = event.summary[i];
         if (line[n] == ' ')
             lastSpace = n;
         line[++n] = 0;
@@ -347,17 +270,17 @@ bool drawEvent(entry *event, int day, int beginY, int max_y, int *y_next)
 
     // Print time
     // also, if theres a location print it
-    if (strlen(event->location) != 1)
+    if (event.location.length() > 0)
     {
-        display.println(event->time);
+        display.println(event.start.format("%c").c_str());
 
         display.setCursor(x1 + 5, display.getCursorY());
 
         char line[128] = {0};
 
-        for (int i = 0; i < strlen(event->location); ++i)
+        for (int i = 0; i < event.location.length(); ++i)
         {
-            line[i] = event->location[i];
+            line[i] = event.location[i];
             line[i + 1] = 0;
 
             int16_t xt1, yt1;
@@ -378,7 +301,7 @@ bool drawEvent(entry *event, int day, int beginY, int max_y, int *y_next)
     }
     else
     {
-        display.print(event->time);
+        display.print(event.start.format("%c").c_str());
     }
 
     int bx1 = x1 + 1;
@@ -399,64 +322,76 @@ bool drawEvent(entry *event, int day, int beginY, int max_y, int *y_next)
     return display.getCursorY() < max_y;
 }
 
-// Struct event comparison function, by timestamp, used for qsort later on
-int cmp(const void *a, const void *b)
+// Struct event comparison function, by timestamp, used for sort later on
+bool compare_entries(const entry &a, const entry &b)
 {
-    entry *entryA = (entry *)a;
-    entry *entryB = (entry *)b;
+    return a.start < b.start;
+}
 
-    return (entryA->timeStamp - entryB->timeStamp);
+uICAL::DateTime utc_datetime_to_local(const uICAL::DateTime &dt) {
+    uICAL::seconds_t secs = timezone.toLocal(dt.epochtime.epochSeconds);
+    return uICAL::DateTime(secs);
 }
 
 // Main data drawing data
-void drawData()
+void drawData(String &data)
 {
-    long i = 0;
-    long n = strlen(data);
+    // calculate begin and end times
+    Serial.println("drawData() begin");
+    uICAL::dhms_t begin_dhms = uICAL::to_dhms(timezone.toLocal(time(nullptr)));
+    int begin_days = std::get<0>(begin_dhms);
+    int end_days = begin_days + COLUMNS;
 
-    // reset count
-    entriesNum = 0;
+    uICAL::DateTime begin(uICAL::to_seconds(begin_days, 0, 0, 0));
+    uICAL::DateTime end(uICAL::to_seconds(end_days, 0, 0, 0));
 
-    // Search raw data for events
-    while (i < n && strstr(data + i, "BEGIN:VEVENT"))
-    {
-        // Find next event start and end
-        i = strstr(data + i, "BEGIN:VEVENT") - data + 12;
-        char *end = strstr(data + i, "END:VEVENT");
+    // Here we store calendar entries
+    std::vector<entry> entries;
 
-        if (end == NULL)
-            continue;
+    try {
+        Serial.println("drawData() parsing entries");
+        uICAL::string meow = uICAL::string(data);
+        uICAL::istream_String istm(meow);
+        uICAL::string line;
+        auto cal = uICAL::Calendar::load(istm, [=](const uICAL::VEvent& event){
+            return true;
+        });
+        auto calIt = uICAL::new_ptr<uICAL::CalendarIter>(cal, begin, end);
+        Serial.println("drawData() done parsing entries");
+        while(calIt->next()) {
+            uICAL::CalendarEntry_ptr src_entry = calIt->current();
 
-        // Find all relevant event data
-        char *summary = strstr(data + i, "SUMMARY:") + 8;
-        char *location = strstr(data + i, "LOCATION:") + 9;
-        char *timeStart = strstr(data + i, "DTSTART:") + 8;
-        char *timeEnd = strstr(data + i, "DTEND:") + 6;
+            // Find all relevant event data
+            String summary = src_entry->summary();
+            String location = src_entry->location();
+            uICAL::DateTime start(src_entry->start());
+            uICAL::DateTime end(src_entry->end());
 
-        if (summary && summary < end)
-        {
-            strncpy(entries[entriesNum].name, summary, strchr(summary, '\n') - summary);
-            entries[entriesNum].name[strchr(summary, '\n') - summary] = 0;
+            struct entry entry;
+            entry.summary = summary;
+            entry.location = location;
+            entry.start = utc_datetime_to_local(start);
+            entry.end = utc_datetime_to_local(end);
+
+            uICAL::dhms_t start_dhms = entry.start.convert_to_dhms();
+            int day = std::get<0>(start_dhms) - std::get<0>(begin_dhms);
+            if (day > 0 && day < COLUMNS) {
+                entry.day = day;
+                entries.push_back(entry);
+            }
         }
-        if (location && location < end)
-        {
-            strncpy(entries[entriesNum].location, location, strchr(location, '\n') - location);
-            entries[entriesNum].location[strchr(location, '\n') - location] = 0;
-        }
-        if (timeStart && timeStart < end && timeEnd < end)
-        {
-            getToFrom(entries[entriesNum].time, timeStart, timeEnd, &entries[entriesNum].day,
-                      &entries[entriesNum].timeStamp);
-        }
-        ++entriesNum;
+    }
+    catch (uICAL::Error ex) {
+        Serial.printf("%s: %s\n", ex.message.c_str(), "! Failed loading calendar");
     }
 
     // Sort entries by time
-    qsort(entries, entriesNum, sizeof(entry), cmp);
+    Serial.println("drawData() sorting");
+    sort(entries.begin(), entries.end(), compare_entries);
 
     // Events displayed and overflown counters
+    Serial.println("drawData() displaying");
     int columns[COLUMNS] = {0};
-    bool clogged[COLUMNS] = {0};
     int cloggedCount[COLUMNS] = {0};
 
     for (int i = 0; i < COLUMNS; ++i) {
@@ -464,31 +399,29 @@ void drawData()
     }
 
     // Displaying events one by one
-    for (int i = 0; i < entriesNum; ++i)
-    {
+    for (auto entry : entries) {
         // If column overflowed just add event to not shown
-        if (entries[i].day != -1 && clogged[entries[i].day])
-            ++cloggedCount[entries[i].day];
-        if (entries[i].day == -1 || clogged[entries[i].day])
+        if (cloggedCount[entry.day] > 0) {
+            ++cloggedCount[entry.day];
             continue;
+        }
 
         // We store how much height did one event take up
-        int shift = 0;
-        bool s = drawEvent(&entries[i], entries[i].day, columns[entries[i].day], SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM, &shift);
-        columns[entries[i].day] = shift;
+        int y_pos = 0;
+        bool s = drawEvent(entry, entry.day, columns[entry.day], SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM, &y_pos);
+        columns[entry.day] = y_pos;
 
         // If it overflowed, set column to clogged and add one event as not shown
         if (!s)
         {
-            ++cloggedCount[entries[i].day];
-            clogged[entries[i].day] = 1;
+            ++cloggedCount[entry.day];
         }
     }
 
     // Display not shown events info
     for (int i = 0; i < COLUMNS; ++i)
     {
-        if (clogged[i])
+        if (cloggedCount[i])
         {
             // Draw notification showing that there are more events than drawn ones
             display.fillRoundRect(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_BORDER_WIDTH, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_BORDER_WIDTH - 24, COLUMN_WIDTH - 2*INSIDE_BORDER_WIDTH, 20, 10, 0);

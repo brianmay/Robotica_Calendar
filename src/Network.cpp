@@ -50,22 +50,8 @@ void Network::begin()
     setTime();
 }
 
-// Gets time from ntp server
-void Network::getTime(char *timeStr, Timezone *timezone, long offSet)
-{
-    // Get seconds since 1.1.1970.
-    time_t nowSecs = timezone->toLocal(time(nullptr)) + offSet;
-
-    // Used to store time
-    struct tm timeinfo;
-    gmtime_r(&nowSecs, &timeinfo);
-
-    // Copies time string into timeStr
-    strcpy(timeStr, asctime(&timeinfo));
-}
-
 // Function to get all war data from web
-bool Network::getData(char *data)
+bool Network::getData(String *data)
 {
     // Variable to store fail
     bool f = 0;
@@ -114,10 +100,7 @@ bool Network::getData(char *data)
 
     if (httpCode == 200)
     {
-        long n = 0;
-        while (http.getStream().available())
-            data[n++] = http.getStream().read();
-        data[n++] = 0;
+        *data = http.getString();
     }
     else
     {

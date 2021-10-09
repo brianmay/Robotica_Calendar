@@ -40,8 +40,7 @@ class Network
   public:
     // Functions we can access in main file
     void begin();
-    void getTime(char *timeStr, Timezone *timezone, long offset = 0);
-    bool getData(char *data);
+    bool getData(String *data);
 
   private:
     // Functions called from within our class
