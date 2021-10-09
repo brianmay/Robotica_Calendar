@@ -43,17 +43,12 @@
 
 // Variables to keep count of when to get new data, and when to just update time
 RTC_DATA_ATTR unsigned int refreshes = 0;
-const int refreshesToGet = 10;
 
 // Initiate out Inkplate object
 Inkplate display(INKPLATE_3BIT);
 
 // Our networking functions, see Network.cpp for info
 Network network;
-
-// Variables for time and raw event info
-// char date[64];
-// char *data;
 
 // Struct for storing calender event info
 struct entry
