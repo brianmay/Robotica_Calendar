@@ -379,7 +379,7 @@ void drawData(String &data)
 
             uICAL::dhms_t start_dhms = entry.start.convert_to_dhms();
             entry.day = std::get<0>(start_dhms) - std::get<0>(begin_dhms);
-            if (entry.day > 0 && entry.day < COLUMNS) {
+            if (entry.day >= 0 && entry.day < COLUMNS) {
                 entries.push_back(entry);
             }
         }
