@@ -167,6 +167,29 @@ void drawTime()
     display.println(now.format("%c").c_str());
 }
 
+void draw_error(const String &msg) {
+    const char *buffer = msg.c_str();
+
+    int16_t xt1, yt1;
+    uint16_t w, h;
+
+    // Gets text bounds
+    display.getTextBounds(buffer, 0, 0, &xt1, &yt1, &w, &h);
+
+    const uint16_t border = 10;
+    const uint16_t x_text = SCREEN_WIDTH/2 - w/2;
+    const uint16_t y_text = SCREEN_HEIGHT/2 + h/2;
+
+    const uint16_t x_left = SCREEN_WIDTH/2 - w/2 - border;
+    const uint16_t y_top = SCREEN_HEIGHT/2 - h/2 - border;
+    const uint16_t width = w + border * 2;
+    const uint16_t height = h + border * 2;
+
+    display.drawRoundRect(x_left, y_top, width, height, 0, 0);
+    display.setCursor(x_text, y_text);
+    display.print(buffer);
+}
+
 // Draw lines in which to put events
 void drawGrid()
 {
@@ -386,6 +409,7 @@ void drawData(String &data)
     }
     catch (uICAL::Error ex) {
         Serial.printf("%s: %s\n", ex.message.c_str(), "! Failed loading calendar");
+        draw_error("Failed loading calendar.");
     }
 
     // Sort entries by time
