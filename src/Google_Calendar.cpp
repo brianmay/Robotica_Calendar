@@ -452,7 +452,7 @@ void drawData(String &data)
             }
 
             // If entry withing date bounds, add to list.
-            // Entry should always be within bounds here, but check just in case.
+            // Note events that have started and not completed yet will get rejected here.
             if (entry.day >= 0 && entry.day < COLUMNS) {
                 Serial.println("----------");
                 Serial.println("DAY " + entry.day);
