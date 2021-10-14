@@ -34,12 +34,19 @@
 // Includes
 #include <algorithm>
 #include <ctime>
+#include <memory>
 #include <uICAL.h>
+#include <uICAL/date.h>
+#include <uICAL/time.h>
 #include <uICAL/datecalc.h>
 #include <sstream>
 
 #include "Network.h"
 #include "config.h"
+#include "local_time.h"
+
+Timezone_ptr timezone_ptr = std::make_shared<Timezone>(timezone);
+Local_TZ_ptr local_tz = std::make_shared<Local_TZ>(Local_TZ(timezone_ptr));
 
 // Variables to keep count of when to get new data, and when to just update time
 RTC_DATA_ATTR unsigned int refreshes = 0;
@@ -57,6 +64,8 @@ struct entry
     String location;
     uICAL::DateTime start;
     uICAL::DateTime end;
+    bool start_has_time;
+    bool end_has_time;
     int day;
 };
 
@@ -66,6 +75,7 @@ void drawTime();
 void drawGrid();
 bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next);
 void drawData(String &data);
+
 
 void setup()
 {
@@ -93,7 +103,7 @@ void setup()
     }
 
     Serial.println("Going to sleep.");
-    delay(5000);
+    // delay(5000);
 
     Serial.println("Starting network stuff.");
     network.begin();
@@ -161,10 +171,9 @@ void drawTime()
     display.setCursor(500, 20);
 
     // Our function to get time
-    time_t now_secs = timezone.toLocal(time(nullptr));
-    uICAL::DateTime now = now_secs;
-
-    display.println(now.format("%c").c_str());
+    uICAL::DateTime utc_datetime(time(nullptr), uICAL::tz_UTC);
+    uICAL::DateTime local_datetime = utc_datetime.shift_timezone(local_tz);
+    display.println(local_datetime.format("%c").c_str());
 }
 
 void draw_error(const String &msg) {
@@ -217,19 +226,19 @@ void drawGrid()
         );
     }
 
+    uICAL::DateTime utc_datetime(time(nullptr), uICAL::tz_UTC);
+    uICAL::DateTime local_datetime = utc_datetime.shift_timezone(local_tz);
+    uICAL::Date local_date = local_datetime.date();
+
     for (int i = 0; i < m; ++i)
     {
-        display.setFont(&FreeSans9pt7b);
-
-        // Display day info using time offset
-        time_t day_time_secs = timezone.toLocal(time(nullptr)) + i * 3600L * 24;
-        uICAL::dhms_t day_time_dhms = uICAL::to_dhms(day_time_secs);
-        day_time_secs = uICAL::to_seconds(std::get<0>(day_time_dhms), 0, 0, 0);
-        uICAL::DateTime day_time = day_time_secs;
+        // Calculate date for column
+        uICAL::Date date = local_date + i;
 
         // calculate where to put text and print it
+        display.setFont(&FreeSans9pt7b);
         display.setCursor(x1 + i * COLUMN_WIDTH + INSIDE_BORDER_WIDTH, y1 + HEADER_HEIGHT - 6);
-        display.println(day_time.format("%a %d/%h").c_str());
+        display.println(date.format("%a %d/%h").c_str());
     }
 }
 
@@ -239,8 +248,10 @@ bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
     // Upper left coordintes
     int x1 = OUTSIDE_BORDER_WIDTH + INSIDE_BORDER_WIDTH + COLUMN_WIDTH * day;
     int y1 = beginY + INSIDE_SPACING_HEIGHT;
-    int max_width_text = COLUMN_WIDTH - 2*INSIDE_BORDER_WIDTH;
-    display.setCursor(x1 + INSIDE_BORDER_WIDTH, y1 + 30);
+
+    int x_text = x1 + INSIDE_BORDER_WIDTH;
+    int max_width_text = COLUMN_WIDTH - 4*INSIDE_BORDER_WIDTH;
+    display.setCursor(x_text, y1 + 30);
 
     // Setting text font
     display.setFont(&FreeSans12pt7b);
@@ -264,19 +275,25 @@ bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
 
         // Gets text bounds
         display.getTextBounds(line, 0, 0, &xt1, &yt1, &w, &h);
+        // Serial.printf("'%s' %d %d %d %d %d\n", line, max_width_text, w, w > max_width_text, lastSpace, n - lastSpace);
 
         // Char out of bounds, put in next line
+        // Note n is now pointing at terminating 0 in line
         if (w > max_width_text)
         {
-            // if there was a space 5 chars before, break line there
-            if (n - lastSpace < 5)
+            if (n - lastSpace - 1 < 5)
             {
+                // if there was a space 5 chars before, break line there
                 i -= n - lastSpace - 1;
                 line[lastSpace] = 0;
+            } else {
+                // otherwise, break before current character
+                i -= 1;
+                line[n-1] = 0;
             }
 
             // Print text line
-            display.setCursor(x1 + INSIDE_BORDER_WIDTH, display.getCursorY());
+            display.setCursor(x_text, display.getCursorY());
             display.println(line);
 
             // Clears line (null termination on first charachter)
@@ -286,22 +303,36 @@ bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
     }
 
     // display last line
-    display.setCursor(x1 + 5, display.getCursorY());
+    display.setCursor(x_text, display.getCursorY());
     display.println(line);
 
     // Set cursor on same y but change x
-    display.setCursor(x1 + 3, display.getCursorY());
+    display.setCursor(x_text, display.getCursorY());
     display.setFont(&FreeSans9pt7b);
 
     // Print time
-    String time = event.start.format("%H:%M") + " to " + event.end.format("%H:%M");
+    String time;
+    unsigned days = uICAL::Date(event.end) - uICAL::Date(event.start);
+    if (event.start_has_time && event.end_has_time) {
+        time = event.start.format("%H:%M") + " to " + event.end.format("%H:%M");
+        if (days > 0) {
+            time = time + "+" + String(days) + " days";
+        }
+    } else {
+        time = String(days) + " days";
+        if (days == 1) {
+            time = "all day";
+        } else {
+            time = String(days) + " days";
+        }
+    }
 
     // also, if theres a location print it
     if (event.location.length() > 0)
     {
-        display.println(time.c_str());
+        display.println(time);
 
-        display.setCursor(x1 + 5, display.getCursorY());
+        display.setCursor(x_text, display.getCursorY());
 
         char line[128] = {0};
 
@@ -356,8 +387,7 @@ bool compare_entries(const entry &a, const entry &b)
 }
 
 uICAL::DateTime utc_datetime_to_local(const uICAL::DateTime &dt) {
-    uICAL::seconds_t secs = timezone.toLocal(dt.epochtime.epochSeconds);
-    return uICAL::DateTime(secs);
+    return dt.shift_timezone(local_tz);
 }
 
 // Main data drawing data
@@ -365,12 +395,19 @@ void drawData(String &data)
 {
     // calculate begin and end times
     Serial.println("drawData() begin");
-    uICAL::dhms_t begin_dhms = uICAL::to_dhms(timezone.toLocal(time(nullptr)));
-    int begin_days = std::get<0>(begin_dhms);
-    int end_days = begin_days + COLUMNS;
 
-    uICAL::DateTime begin(uICAL::to_seconds(begin_days, 0, 0, 0));
-    uICAL::DateTime end(uICAL::to_seconds(end_days, 0, 0, 0));
+
+    uICAL::DateTime utc_datetime(time(nullptr), uICAL::tz_UTC);
+    uICAL::DateTime local_datetime = utc_datetime.shift_timezone(local_tz);
+    uICAL::Date begin_date = local_datetime.date();
+    uICAL::Date end_date = begin_date + COLUMNS;
+    uICAL::DateTime begin = begin_date.start_of_day(local_tz).shift_timezone(uICAL::tz_UTC);
+    uICAL::DateTime end = end_date.start_of_day(local_tz).shift_timezone(uICAL::tz_UTC);
+
+    Serial.println("utc_datetime: "+ utc_datetime.as_str());
+    Serial.println("local_datetime: "+ local_datetime.as_str());
+    Serial.println("begin_date/end_date: "+ begin_date.as_str() + " / " + end_date.as_str());
+    Serial.println("begin/end: "+ begin.as_str() + " / " + end.as_str());
 
     // Here we store calendar entries
     std::vector<entry> entries;
@@ -397,13 +434,24 @@ void drawData(String &data)
             struct entry entry;
             entry.summary = summary;
             entry.location = location;
-            entry.start = utc_datetime_to_local(start);
-            entry.end = utc_datetime_to_local(end);
+            entry.start = start.shift_timezone(local_tz);
+            entry.end = end.shift_timezone(local_tz);
+            entry.start_has_time = src_entry->start_has_time;
+            entry.end_has_time = src_entry->end_has_time;
 
-            uICAL::dhms_t start_dhms = entry.start.convert_to_dhms();
-            entry.day = std::get<0>(start_dhms) - std::get<0>(begin_dhms);
+            uICAL::Date start_date = entry.start.date();
+            uICAL::Date end_date = entry.end.date();
+
+            entry.day = start_date - begin_date;
             if (entry.day >= 0 && entry.day < COLUMNS) {
+                Serial.println("----------");
+                Serial.println("DAY " + entry.day);
+                Serial.println(src_entry->as_str());
                 entries.push_back(entry);
+            } else {
+                Serial.println("++++++++++");
+                Serial.println("DAY " + entry.day);
+                Serial.println(src_entry->as_str());
             }
         }
     }
