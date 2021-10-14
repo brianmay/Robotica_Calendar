@@ -321,7 +321,7 @@ bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
     } else {
         time = String(days) + " days";
         if (days == 1) {
-            time = "all day";
+            time = "All day";
         } else {
             time = String(days) + " days";
         }
@@ -425,12 +425,15 @@ void drawData(String &data)
         while(calIt->next()) {
             uICAL::CalendarEntry_ptr src_entry = calIt->current();
 
-            // Find all relevant event data
+            // Find all relevant event data.
             String summary = src_entry->summary();
             String location = src_entry->location();
             uICAL::DateTime start(src_entry->start());
             uICAL::DateTime end(src_entry->end());
+            uICAL::Date start_date = start.date();
+            uICAL::Date end_date = end.date();
 
+            // Fill in our struct with data.
             struct entry entry;
             entry.summary = summary;
             entry.location = location;
@@ -438,11 +441,18 @@ void drawData(String &data)
             entry.end = end.shift_timezone(local_tz);
             entry.start_has_time = src_entry->start_has_time;
             entry.end_has_time = src_entry->end_has_time;
-
-            uICAL::Date start_date = entry.start.date();
-            uICAL::Date end_date = entry.end.date();
-
             entry.day = start_date - begin_date;
+
+            // For all day events set to local start of day.
+            if (!src_entry->start_has_time) {
+                entry.start = start_date.start_of_day(local_tz);
+            }
+            if (!src_entry->end_has_time) {
+                entry.end = end_date.start_of_day(local_tz);
+            }
+
+            // If entry withing date bounds, add to list.
+            // Entry should always be within bounds here, but check just in case.
             if (entry.day >= 0 && entry.day < COLUMNS) {
                 Serial.println("----------");
                 Serial.println("DAY " + entry.day);
