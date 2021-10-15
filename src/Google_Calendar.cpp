@@ -57,6 +57,7 @@ Inkplate display(INKPLATE_3BIT);
 // Our networking functions, see Network.cpp for info
 Network network;
 
+enum status_t { pending, started, done};
 // Struct for storing calender event info
 struct entry
 {
@@ -67,6 +68,7 @@ struct entry
     bool start_has_time;
     bool end_has_time;
     int day;
+    status_t status;
 };
 
 // All our functions declared below setup and loop
@@ -237,7 +239,7 @@ void drawGrid()
 
         // calculate where to put text and print it
         display.setFont(&FreeSans9pt7b);
-        display.setCursor(x1 + i * COLUMN_WIDTH + INSIDE_BORDER_WIDTH, y1 + HEADER_HEIGHT - 6);
+        display.setCursor(x1 + i * COLUMN_WIDTH + INSIDE_SPACING_WIDTH, y1 + HEADER_HEIGHT - 6);
         display.println(date.format("%a %d/%h").c_str());
     }
 }
@@ -246,12 +248,12 @@ void drawGrid()
 bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
 {
     // Upper left coordintes
-    int x1 = OUTSIDE_BORDER_WIDTH + INSIDE_BORDER_WIDTH + COLUMN_WIDTH * day;
+    int x1 = OUTSIDE_BORDER_WIDTH + INSIDE_SPACING_WIDTH + COLUMN_WIDTH * day;
     int y1 = beginY + INSIDE_SPACING_HEIGHT;
 
-    int x_text = x1 + INSIDE_BORDER_WIDTH;
-    int max_width_text = COLUMN_WIDTH - 4*INSIDE_BORDER_WIDTH;
-    display.setCursor(x_text, y1 + 30);
+    int x_text = x1 + EVENT_SPACING_WIDTH;
+    int max_width_text = COLUMN_WIDTH - 2*INSIDE_SPACING_WIDTH - 2*EVENT_SPACING_WIDTH;
+    display.setCursor(x_text, y1 + 20 + EVENT_SPACING_HEIGHT);
 
     // Setting text font
     display.setFont(&FreeSans12pt7b);
@@ -364,14 +366,27 @@ bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
 
     int bx1 = x1 + 1;
     int by1 = y1;
-    int bx2 = x1 + COLUMN_WIDTH - INSIDE_BORDER_WIDTH - INSIDE_BORDER_WIDTH - 2;
-    int by2 = display.getCursorY() + 7;
+    int bx2 = x1 + COLUMN_WIDTH - INSIDE_SPACING_WIDTH - INSIDE_SPACING_WIDTH - 2;
+    int by2 = display.getCursorY() + EVENT_SPACING_HEIGHT;
+
+    float width = 0;
+    switch (event.status) {
+        case pending: width = 1; break;
+        case started: width = 2; break;
+        case done: width = 0; break;
+    }
 
     // Draw event rect bounds
-    display.drawThickLine(bx1, by1, bx1, by2, 0, 2.0);
-    display.drawThickLine(bx1, by2, bx2, by2, 0, 2.0);
-    display.drawThickLine(bx2, by2, bx2, by1, 0, 2.0);
-    display.drawThickLine(bx2, by1, bx1, by1, 0, 2.0);
+    for (int border=0; border<width; border=border+1) {
+        int cx1 = bx1 + border*4;
+        int cy1 = by1 + border*4;
+        int cx2 = bx2 - border*4;
+        int cy2 = by2 - border*4;
+        display.drawThickLine(cx1, cy1, cx1, cy2, 0, 1);
+        display.drawThickLine(cx1, cy2, cx2, cy2, 0, 1);
+        display.drawThickLine(cx2, cy2, cx2, cy1, 0, 1);
+        display.drawThickLine(cx2, cy1, cx1, cy1, 0, 1);
+    }
 
     // Set how high is the event
     *y_next = by2 + 1;
@@ -451,16 +466,26 @@ void drawData(String &data)
                 entry.end = end_date.start_of_day(local_tz);
             }
 
+            if (utc_datetime >= entry.end) {
+                entry.status = done;
+            } else if (utc_datetime >= entry.start) {
+                entry.status = started;
+            } else {
+                entry.status = pending;
+            }
+
             // If entry withing date bounds, add to list.
             // Note events that have started and not completed yet will get rejected here.
             if (entry.day >= 0 && entry.day < COLUMNS) {
                 Serial.println("----------");
-                Serial.println("DAY " + entry.day);
+                Serial.println("DAY " + String(entry.day));
+                Serial.println("status " + String(entry.status));
                 Serial.println(src_entry->as_str());
                 entries.push_back(entry);
             } else {
                 Serial.println("++++++++++");
-                Serial.println("DAY " + entry.day);
+                Serial.println("DAY " + String(entry.day));
+                Serial.println("status " + String(entry.status));
                 Serial.println(src_entry->as_str());
             }
         }
@@ -509,8 +534,8 @@ void drawData(String &data)
         if (cloggedCount[i])
         {
             // Draw notification showing that there are more events than drawn ones
-            display.fillRoundRect(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_BORDER_WIDTH, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_BORDER_WIDTH - 24, COLUMN_WIDTH - 2*INSIDE_BORDER_WIDTH, 20, 10, 0);
-            display.setCursor(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_BORDER_WIDTH + 10, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_BORDER_WIDTH - 24 + 15);
+            display.fillRoundRect(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_SPACING_WIDTH, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_SPACING_WIDTH - 24, COLUMN_WIDTH - 2*INSIDE_SPACING_WIDTH, 20, 10, 0);
+            display.setCursor(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_SPACING_WIDTH + 10, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_SPACING_WIDTH - 24 + 15);
             display.setTextColor(7, 0);
             display.setFont(&FreeSans9pt7b);
             display.print(cloggedCount[i]);
