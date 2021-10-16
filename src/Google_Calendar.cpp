@@ -443,8 +443,8 @@ void drawData(String &data)
             // Find all relevant event data.
             String summary = src_entry->summary();
             String location = src_entry->location();
-            uICAL::DateTime start(src_entry->start());
-            uICAL::DateTime end(src_entry->end());
+            uICAL::DateTime start  = src_entry->start().shift_timezone(local_tz);
+            uICAL::DateTime end = src_entry->end().shift_timezone(local_tz);
             uICAL::Date start_date = start.date();
             uICAL::Date end_date = end.date();
 
@@ -452,8 +452,8 @@ void drawData(String &data)
             struct entry entry;
             entry.summary = summary;
             entry.location = location;
-            entry.start = start.shift_timezone(local_tz);
-            entry.end = end.shift_timezone(local_tz);
+            entry.start = start;
+            entry.end = end;
             entry.start_has_time = src_entry->start_has_time;
             entry.end_has_time = src_entry->end_has_time;
             entry.day = start_date - begin_date;
