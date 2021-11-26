@@ -245,7 +245,7 @@ void drawGrid()
 }
 
 // Function to draw event
-bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
+bool drawEvent(const uICAL::Date &local_date, const entry &event, int day, int beginY, int max_y, int *y_next)
 {
     // Upper left coordintes
     int x1 = OUTSIDE_BORDER_WIDTH + INSIDE_SPACING_WIDTH + COLUMN_WIDTH * day;
@@ -314,18 +314,31 @@ bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next)
 
     // Print time
     String time;
-    unsigned days = uICAL::Date(event.end) - uICAL::Date(event.start);
-    if (event.start_has_time && event.end_has_time) {
-        time = event.start.format("%H:%M") + " to " + event.end.format("%H:%M");
-        if (days > 0) {
-            time = time + "+" + String(days) + " days";
+    unsigned start_days = local_date - uICAL::Date(event.start);
+    if (start_days == 0 && event.start_has_time) {
+        time = event.start.format("%H:%M");
+    } else if (start_days == 0) {
+            time = "today";
+    } else if (start_days == 1) {
+            time = "y/day";
+    } else {
+            time = "...";
+    }
+
+    time = time + " to ";
+
+    unsigned end_days = uICAL::Date(event.end) - local_date;
+    if (event.end_has_time) {
+        if (end_days > 0) {
+            time = time + event.end.format("%H:%M") + "+" + String(end_days) + " days";
+        } else {
+            time = time + event.end.format("%H:%M");
         }
     } else {
-        time = String(days) + " days";
-        if (days == 1) {
-            time = "All day";
+        if (end_days == 1) {
+            time = time + "All day";
         } else {
-            time = String(days) + " days";
+            time = time + String(end_days) + " days";
         }
     }
 
@@ -474,8 +487,10 @@ void drawData(String &data)
                 entry.status = pending;
             }
 
+            // If entry already started and not finisehd, put on first day
+            if (entry.day < 0) { entry.day = 0; }
+
             // If entry withing date bounds, add to list.
-            // Note events that have started and not completed yet will get rejected here.
             if (entry.day >= 0 && entry.day < COLUMNS) {
                 Serial.println("----------");
                 Serial.println("DAY " + String(entry.day));
@@ -518,7 +533,8 @@ void drawData(String &data)
 
         // We store how much height did one event take up
         int y_pos = 0;
-        bool s = drawEvent(entry, entry.day, columns[entry.day], SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM, &y_pos);
+        uICAL::Date local_date = uICAL::Date(local_datetime) + entry.day;
+        bool s = drawEvent(local_date, entry, entry.day, columns[entry.day], SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM, &y_pos);
         columns[entry.day] = y_pos;
 
         // If it overflowed, set column to clogged and add one event as not shown
