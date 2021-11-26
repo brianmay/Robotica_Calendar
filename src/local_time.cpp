@@ -18,3 +18,7 @@ uICAL::seconds_t Local_TZ::fromUTC(uICAL::seconds_t timestamp) const {
 void Local_TZ::str(uICAL::ostream& out) const {
     out << "LocalTZ";
 }
+
+void Local_TZ::output_details(uICAL::ostream& out) const {
+    out << "LocalTZ";
+}

@@ -22,6 +22,7 @@ class Local_TZ : public uICAL::TZ {
         virtual uICAL::seconds_t toUTC(uICAL::seconds_t timestamp) const;
         virtual uICAL::seconds_t fromUTC(uICAL::seconds_t timestamp) const;
         virtual void str(uICAL::ostream& out) const;
+        virtual void output_details(uICAL::ostream& out) const;
 
     private:
         Timezone_ptr timezone;
