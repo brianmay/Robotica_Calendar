@@ -335,8 +335,10 @@ bool drawEvent(const uICAL::Date &local_date, const entry &event, int day, int b
             time = time + event.end.format("%H:%M");
         }
     } else {
-        if (end_days == 1) {
-            time = time + "All day";
+        if (start_days == 0 && !event.start_has_time && end_days == 1) {
+            time = "all day";
+        } else if (end_days == 1) {
+            time = "end day";
         } else {
             time = time + String(end_days) + " days";
         }
