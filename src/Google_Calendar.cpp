@@ -283,9 +283,9 @@ bool drawEvent(const uICAL::Date &local_date, const entry &event, int day, int b
         // Note n is now pointing at terminating 0 in line
         if (w > max_width_text)
         {
-            if (n - lastSpace - 1 < 5)
+            if (n - lastSpace - 1 < 15)
             {
-                // if there was a space 5 chars before, break line there
+                // if there was a space 15 chars before, break line there
                 i -= n - lastSpace - 1;
                 line[lastSpace] = 0;
             } else {
