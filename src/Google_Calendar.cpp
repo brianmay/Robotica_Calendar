@@ -63,8 +63,10 @@ struct entry
 {
     String summary;
     String location;
-    uICAL::DateTime start;
-    uICAL::DateTime end;
+    uICAL::DateTime start_time;
+    uICAL::DateTime end_time;
+    uICAL::Date start_date;
+    uICAL::Date end_date;
     bool start_has_time;
     bool end_has_time;
     int day;
@@ -314,9 +316,9 @@ bool drawEvent(const uICAL::Date &local_date, const entry &event, int day, int b
 
     // Print time
     String time;
-    unsigned start_days = local_date - uICAL::Date(event.start);
+    unsigned start_days = local_date - event.start_date;
     if (start_days == 0 && event.start_has_time) {
-        time = event.start.format("%H:%M");
+        time = event.start_time.format("%H:%M");
     } else if (start_days == 0) {
             time = "today";
     } else if (start_days == 1) {
@@ -327,17 +329,17 @@ bool drawEvent(const uICAL::Date &local_date, const entry &event, int day, int b
 
     time = time + " to ";
 
-    unsigned end_days = uICAL::Date(event.end) - local_date;
+    unsigned end_days = event.end_date - local_date;
     if (event.end_has_time) {
         if (end_days > 0) {
-            time = time + event.end.format("%H:%M") + "+" + String(end_days) + " days";
+            time = time + event.end_time.format("%H:%M") + "+" + String(end_days) + " days";
         } else {
-            time = time + event.end.format("%H:%M");
+            time = time + event.end_time.format("%H:%M");
         }
     } else {
-        if (start_days == 0 && !event.start_has_time && end_days == 1) {
+        if (start_days == 0 && !event.start_has_time && end_days == 0) {
             time = "all day";
-        } else if (end_days == 1) {
+        } else if (end_days == 0) {
             time = time + "end day";
         } else {
             time = time + String(end_days) + " days";
@@ -413,7 +415,7 @@ bool drawEvent(const uICAL::Date &local_date, const entry &event, int day, int b
 // Struct event comparison function, by timestamp, used for sort later on
 bool compare_entries(const entry &a, const entry &b)
 {
-    return a.start < b.start;
+    return a.start_time < b.start_time;
 }
 
 uICAL::DateTime utc_datetime_to_local(const uICAL::DateTime &dt) {
@@ -458,53 +460,69 @@ void drawData(String &data)
             // Find all relevant event data.
             String summary = src_entry->summary();
             String location = src_entry->location();
-            uICAL::DateTime start  = src_entry->start().shift_timezone(local_tz);
-            uICAL::DateTime end = src_entry->end().shift_timezone(local_tz);
-            uICAL::Date start_date = start.date();
-            uICAL::Date end_date = end.date();
+            uICAL::DateTime entry_start_time  = src_entry->start().shift_timezone(local_tz);
+            uICAL::DateTime entry_end_time = src_entry->end().shift_timezone(local_tz);
+            uICAL::Date entry_start_date = entry_start_time.date();
+            uICAL::Date entry_end_date = entry_end_time.date();
+
+            // For events with time specified set to local start of day.
+            if (!src_entry->start_has_time) {
+                entry_start_time = entry_start_date.start_of_day(local_tz);
+            }
+            if (!src_entry->end_has_time) {
+                entry_end_time = entry_end_date.start_of_day(local_tz);
+            }
+
+            // If entry is all day, then end_date is set to the next day,
+            // change it back to today.
+            if (!src_entry->end_has_time) {
+                entry_end_date = entry_end_date - 1;
+            }
 
             // Fill in our struct with data.
             struct entry entry;
             entry.summary = summary;
             entry.location = location;
-            entry.start = start;
-            entry.end = end;
+            entry.start_time = entry_start_time;
+            entry.end_time = entry_end_time;
+            entry.start_date = entry_start_date;
+            entry.end_date = entry_end_date;
             entry.start_has_time = src_entry->start_has_time;
             entry.end_has_time = src_entry->end_has_time;
-            entry.day = start_date - begin_date;
+            entry.day = entry_start_date - begin_date;
 
-            // For all day events set to local start of day.
-            if (!src_entry->start_has_time) {
-                entry.start = start_date.start_of_day(local_tz);
-            }
-            if (!src_entry->end_has_time) {
-                entry.end = end_date.start_of_day(local_tz);
-            }
-
-            if (utc_datetime >= entry.end) {
+            // Set entry status
+            if (utc_datetime >= entry.end_time) {
                 entry.status = done;
-            } else if (utc_datetime >= entry.start) {
+            } else if (utc_datetime >= entry.start_time) {
                 entry.status = started;
             } else {
                 entry.status = pending;
             }
 
-            // If entry already started and not finisehd, put on first day
-            if (entry.day < 0) { entry.day = 0; }
+            // If entry already started but not finished, then set to day 0.
+            if (entry.day < 0 && entry_end_date >= begin_date) {
+                entry.day = 0;
+            }
 
             // If entry withing date bounds, add to list.
             if (entry.day >= 0 && entry.day < COLUMNS) {
                 Serial.println("----------");
-                Serial.println("DAY " + String(entry.day));
-                Serial.println("status " + String(entry.status));
-                Serial.println(src_entry->as_str());
                 entries.push_back(entry);
             } else {
                 Serial.println("++++++++++");
-                Serial.println("DAY " + String(entry.day));
-                Serial.println("status " + String(entry.status));
-                Serial.println(src_entry->as_str());
             }
+
+            Serial.println("DAY " + String(entry.day));
+            Serial.println("summary " + entry.summary);
+            Serial.println("status " + String(entry.status));
+            Serial.println("start " + entry.start_time.as_str());
+            Serial.println("start " + entry.start_date.as_str());
+            Serial.println("start_has_time " + String(entry.start_has_time));
+            Serial.println("end " + entry.end_time.as_str());
+            Serial.println("end " + entry.end_date.as_str());
+            Serial.println("end_has_time " + String(entry.end_has_time));
+            Serial.println();
         }
     }
     catch (uICAL::Error ex) {
