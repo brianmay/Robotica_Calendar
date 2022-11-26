@@ -482,9 +482,8 @@ void drawData(String &data)
         uICAL::string meow = uICAL::string(data);
         uICAL::istream_String istm(meow);
         uICAL::string line;
-        auto cal = uICAL::Calendar::load(istm, [=](const uICAL::VEvent& event){
-            return true;
-        });
+        auto cal = uICAL::Calendar::load(istm, [=](const uICAL::VEvent &event)
+                                         { return (event.start >= begin || event.has_rrule) && event.start < end; });
         auto calIt = uICAL::new_ptr<uICAL::CalendarIter>(cal, begin, end);
         Serial.println("drawData() done parsing entries");
         while (calIt->next())
