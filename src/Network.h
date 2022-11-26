@@ -37,14 +37,14 @@ extern char calendarURL[];
 
 class Network
 {
-  public:
-    // Functions we can access in main file
-    void begin();
-    bool getData(String *data);
+public:
+  // Functions we can access in main file
+  void begin();
+  bool getData(String *data);
 
-  private:
-    // Functions called from within our class
-    void setTime();
+private:
+  // Functions called from within our class
+  void setTime();
 };
 
 #endif

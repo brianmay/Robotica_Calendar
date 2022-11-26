@@ -16,17 +16,18 @@ class DateStamp;
 
 using Timezone_ptr = std::shared_ptr<Timezone>;
 
-class Local_TZ : public uICAL::TZ {
-    public:
-        Local_TZ(const Timezone_ptr timezone);
-        virtual uICAL::seconds_t toUTC(uICAL::seconds_t timestamp) const;
-        virtual uICAL::seconds_t fromUTC(uICAL::seconds_t timestamp) const;
-        virtual void str(uICAL::ostream& out) const;
-        virtual void output_details(uICAL::ostream& out) const;
+class Local_TZ : public uICAL::TZ
+{
+public:
+    Local_TZ(const Timezone_ptr timezone);
+    virtual uICAL::seconds_t toUTC(uICAL::seconds_t timestamp) const;
+    virtual uICAL::seconds_t fromUTC(uICAL::seconds_t timestamp) const;
+    virtual void str(uICAL::ostream &out) const;
+    virtual void output_details(uICAL::ostream &out) const;
 
-    private:
-        Timezone_ptr timezone;
-    };
+private:
+    Timezone_ptr timezone;
+};
 
 using Local_TZ_ptr = std::shared_ptr<Local_TZ>;
 

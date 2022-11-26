@@ -57,7 +57,12 @@ Inkplate display(INKPLATE_3BIT);
 // Our networking functions, see Network.cpp for info
 Network network;
 
-enum status_t { pending, started, done};
+enum status_t
+{
+    pending,
+    started,
+    done
+};
 // Struct for storing calender event info
 struct entry
 {
@@ -79,7 +84,6 @@ void drawTime();
 void drawGrid();
 bool drawEvent(const entry &event, int day, int beginY, int max_y, int *y_next);
 void drawData(String &data);
-
 
 void setup()
 {
@@ -180,7 +184,8 @@ void drawTime()
     display.println(local_datetime.format("%c").c_str());
 }
 
-void draw_error(const String &msg) {
+void draw_error(const String &msg)
+{
     const char *buffer = msg.c_str();
 
     int16_t xt1, yt1;
@@ -190,11 +195,11 @@ void draw_error(const String &msg) {
     display.getTextBounds(buffer, 0, 0, &xt1, &yt1, &w, &h);
 
     const uint16_t border = 10;
-    const uint16_t x_text = SCREEN_WIDTH/2 - w/2;
-    const uint16_t y_text = SCREEN_HEIGHT/2 + h/2;
+    const uint16_t x_text = SCREEN_WIDTH / 2 - w / 2;
+    const uint16_t y_text = SCREEN_HEIGHT / 2 + h / 2;
 
-    const uint16_t x_left = SCREEN_WIDTH/2 - w/2 - border;
-    const uint16_t y_top = SCREEN_HEIGHT/2 - h/2 - border;
+    const uint16_t x_left = SCREEN_WIDTH / 2 - w / 2 - border;
+    const uint16_t y_top = SCREEN_HEIGHT / 2 - h / 2 - border;
     const uint16_t width = w + border * 2;
     const uint16_t height = h + border * 2;
 
@@ -208,7 +213,7 @@ void drawGrid()
 {
     // upper left and low right coordinates
     int x1 = OUTSIDE_BORDER_WIDTH, y1 = OUTSIDE_BORDER_TOP;
-    int x2 = x1 + COLUMN_WIDTH*COLUMNS, y2 = SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM;
+    int x2 = x1 + COLUMN_WIDTH * COLUMNS, y2 = SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM;
 
     // Columns and rows
     int n = 1, m = COLUMNS;
@@ -226,8 +231,7 @@ void drawGrid()
         display.drawThickLine(
             x1 + i * COLUMN_WIDTH, y1,
             x1 + i * COLUMN_WIDTH, y2,
-            0, 2.0
-        );
+            0, 2.0);
     }
 
     uICAL::DateTime utc_datetime(time(nullptr), uICAL::tz_UTC);
@@ -254,7 +258,7 @@ bool drawEvent(const uICAL::Date &local_date, const entry &event, int day, int b
     int y1 = beginY + INSIDE_SPACING_HEIGHT;
 
     int x_text = x1 + EVENT_SPACING_WIDTH;
-    int max_width_text = COLUMN_WIDTH - 2*INSIDE_SPACING_WIDTH - 2*EVENT_SPACING_WIDTH;
+    int max_width_text = COLUMN_WIDTH - 2 * INSIDE_SPACING_WIDTH - 2 * EVENT_SPACING_WIDTH;
     display.setCursor(x_text, y1 + 20 + EVENT_SPACING_HEIGHT);
 
     // Setting text font
@@ -290,10 +294,12 @@ bool drawEvent(const uICAL::Date &local_date, const entry &event, int day, int b
                 // if there was a space 15 chars before, break line there
                 i -= n - lastSpace - 1;
                 line[lastSpace] = 0;
-            } else {
+            }
+            else
+            {
                 // otherwise, break before current character
                 i -= 1;
-                line[n-1] = 0;
+                line[n - 1] = 0;
             }
 
             // Print text line
@@ -317,31 +323,49 @@ bool drawEvent(const uICAL::Date &local_date, const entry &event, int day, int b
     // Print time
     String time;
     unsigned start_days = local_date - event.start_date;
-    if (start_days == 0 && event.start_has_time) {
+    if (start_days == 0 && event.start_has_time)
+    {
         time = event.start_time.format("%H:%M");
-    } else if (start_days == 0) {
-            time = "today";
-    } else if (start_days == 1) {
-            time = "y/day";
-    } else {
-            time = "...";
+    }
+    else if (start_days == 0)
+    {
+        time = "today";
+    }
+    else if (start_days == 1)
+    {
+        time = "y/day";
+    }
+    else
+    {
+        time = "...";
     }
 
     time = time + " to ";
 
     unsigned end_days = event.end_date - local_date;
-    if (event.end_has_time) {
-        if (end_days > 0) {
+    if (event.end_has_time)
+    {
+        if (end_days > 0)
+        {
             time = time + event.end_time.format("%H:%M") + "+" + String(end_days) + " days";
-        } else {
+        }
+        else
+        {
             time = time + event.end_time.format("%H:%M");
         }
-    } else {
-        if (start_days == 0 && !event.start_has_time && end_days == 0) {
+    }
+    else
+    {
+        if (start_days == 0 && !event.start_has_time && end_days == 0)
+        {
             time = "all day";
-        } else if (end_days == 0) {
+        }
+        else if (end_days == 0)
+        {
             time = time + "end day";
-        } else {
+        }
+        else
+        {
             time = time + String(end_days) + " days";
         }
     }
@@ -387,18 +411,26 @@ bool drawEvent(const uICAL::Date &local_date, const entry &event, int day, int b
     int by2 = display.getCursorY() + EVENT_SPACING_HEIGHT;
 
     float width = 0;
-    switch (event.status) {
-        case pending: width = 1; break;
-        case started: width = 2; break;
-        case done: width = 0; break;
+    switch (event.status)
+    {
+    case pending:
+        width = 1;
+        break;
+    case started:
+        width = 2;
+        break;
+    case done:
+        width = 0;
+        break;
     }
 
     // Draw event rect bounds
-    for (int border=0; border<width; border=border+1) {
-        int cx1 = bx1 + border*4;
-        int cy1 = by1 + border*4;
-        int cx2 = bx2 - border*4;
-        int cy2 = by2 - border*4;
+    for (int border = 0; border < width; border = border + 1)
+    {
+        int cx1 = bx1 + border * 4;
+        int cy1 = by1 + border * 4;
+        int cx2 = bx2 - border * 4;
+        int cy2 = by2 - border * 4;
         display.drawThickLine(cx1, cy1, cx1, cy2, 0, 1);
         display.drawThickLine(cx1, cy2, cx2, cy2, 0, 1);
         display.drawThickLine(cx2, cy2, cx2, cy1, 0, 1);
@@ -418,7 +450,8 @@ bool compare_entries(const entry &a, const entry &b)
     return a.start_time < b.start_time;
 }
 
-uICAL::DateTime utc_datetime_to_local(const uICAL::DateTime &dt) {
+uICAL::DateTime utc_datetime_to_local(const uICAL::DateTime &dt)
+{
     return dt.shift_timezone(local_tz);
 }
 
@@ -428,7 +461,6 @@ void drawData(String &data)
     // calculate begin and end times
     Serial.println("drawData() begin");
 
-
     uICAL::DateTime utc_datetime(time(nullptr), uICAL::tz_UTC);
     uICAL::DateTime local_datetime = utc_datetime.shift_timezone(local_tz);
     uICAL::Date begin_date = local_datetime.date();
@@ -436,15 +468,16 @@ void drawData(String &data)
     uICAL::DateTime begin = begin_date.start_of_day(local_tz).shift_timezone(uICAL::tz_UTC);
     uICAL::DateTime end = end_date.start_of_day(local_tz).shift_timezone(uICAL::tz_UTC);
 
-    Serial.println("utc_datetime: "+ utc_datetime.as_str());
-    Serial.println("local_datetime: "+ local_datetime.as_str());
-    Serial.println("begin_date/end_date: "+ begin_date.as_str() + " / " + end_date.as_str());
-    Serial.println("begin/end: "+ begin.as_str() + " / " + end.as_str());
+    Serial.println("utc_datetime: " + utc_datetime.as_str());
+    Serial.println("local_datetime: " + local_datetime.as_str());
+    Serial.println("begin_date/end_date: " + begin_date.as_str() + " / " + end_date.as_str());
+    Serial.println("begin/end: " + begin.as_str() + " / " + end.as_str());
 
     // Here we store calendar entries
     std::vector<entry> entries;
 
-    try {
+    try
+    {
         Serial.println("drawData() parsing entries");
         uICAL::string meow = uICAL::string(data);
         uICAL::istream_String istm(meow);
@@ -454,28 +487,32 @@ void drawData(String &data)
         });
         auto calIt = uICAL::new_ptr<uICAL::CalendarIter>(cal, begin, end);
         Serial.println("drawData() done parsing entries");
-        while(calIt->next()) {
+        while (calIt->next())
+        {
             uICAL::CalendarEntry_ptr src_entry = calIt->current();
 
             // Find all relevant event data.
             String summary = src_entry->summary();
             String location = src_entry->location();
-            uICAL::DateTime entry_start_time  = src_entry->start().shift_timezone(local_tz);
+            uICAL::DateTime entry_start_time = src_entry->start().shift_timezone(local_tz);
             uICAL::DateTime entry_end_time = src_entry->end().shift_timezone(local_tz);
             uICAL::Date entry_start_date = entry_start_time.date();
             uICAL::Date entry_end_date = entry_end_time.date();
 
             // For events with time specified set to local start of day.
-            if (!src_entry->start_has_time) {
+            if (!src_entry->start_has_time)
+            {
                 entry_start_time = entry_start_date.start_of_day(local_tz);
             }
-            if (!src_entry->end_has_time) {
+            if (!src_entry->end_has_time)
+            {
                 entry_end_time = entry_end_date.start_of_day(local_tz);
             }
 
             // If entry is all day, then end_date is set to the next day,
             // change it back to today.
-            if (!src_entry->end_has_time) {
+            if (!src_entry->end_has_time)
+            {
                 entry_end_date = entry_end_date - 1;
             }
 
@@ -492,24 +529,33 @@ void drawData(String &data)
             entry.day = entry_start_date - begin_date;
 
             // Set entry status
-            if (utc_datetime >= entry.end_time) {
+            if (utc_datetime >= entry.end_time)
+            {
                 entry.status = done;
-            } else if (utc_datetime >= entry.start_time) {
+            }
+            else if (utc_datetime >= entry.start_time)
+            {
                 entry.status = started;
-            } else {
+            }
+            else
+            {
                 entry.status = pending;
             }
 
             // If entry already started but not finished, then set to day 0.
-            if (entry.day < 0 && entry_end_date >= begin_date) {
+            if (entry.day < 0 && entry_end_date >= begin_date)
+            {
                 entry.day = 0;
             }
 
             // If entry withing date bounds, add to list.
-            if (entry.day >= 0 && entry.day < COLUMNS) {
+            if (entry.day >= 0 && entry.day < COLUMNS)
+            {
                 Serial.println("----------");
                 entries.push_back(entry);
-            } else {
+            }
+            else
+            {
                 Serial.println("++++++++++");
             }
 
@@ -525,7 +571,8 @@ void drawData(String &data)
             Serial.println();
         }
     }
-    catch (uICAL::Error ex) {
+    catch (uICAL::Error ex)
+    {
         Serial.printf("%s: %s\n", ex.message.c_str(), "! Failed loading calendar");
         draw_error("Failed loading calendar.");
     }
@@ -539,14 +586,17 @@ void drawData(String &data)
     int columns[COLUMNS] = {0};
     int cloggedCount[COLUMNS] = {0};
 
-    for (int i = 0; i < COLUMNS; ++i) {
+    for (int i = 0; i < COLUMNS; ++i)
+    {
         columns[i] = OUTSIDE_BORDER_TOP + HEADER_HEIGHT + 1;
     }
 
     // Displaying events one by one
-    for (auto entry : entries) {
+    for (auto entry : entries)
+    {
         // If column overflowed just add event to not shown
-        if (cloggedCount[entry.day] > 0) {
+        if (cloggedCount[entry.day] > 0)
+        {
             ++cloggedCount[entry.day];
             continue;
         }
@@ -570,7 +620,7 @@ void drawData(String &data)
         if (cloggedCount[i])
         {
             // Draw notification showing that there are more events than drawn ones
-            display.fillRoundRect(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_SPACING_WIDTH, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_SPACING_WIDTH - 24, COLUMN_WIDTH - 2*INSIDE_SPACING_WIDTH, 20, 10, 0);
+            display.fillRoundRect(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_SPACING_WIDTH, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_SPACING_WIDTH - 24, COLUMN_WIDTH - 2 * INSIDE_SPACING_WIDTH, 20, 10, 0);
             display.setCursor(OUTSIDE_BORDER_WIDTH + i * COLUMN_WIDTH + INSIDE_SPACING_WIDTH + 10, SCREEN_HEIGHT - OUTSIDE_BORDER_BOTTOM - INSIDE_SPACING_WIDTH - 24 + 15);
             display.setTextColor(7, 0);
             display.setFont(&FreeSans9pt7b);
