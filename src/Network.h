@@ -21,30 +21,33 @@ Distributed as-is; no warranty is given.
 #include <WiFiClientSecure.h>
 #include <Timezone.h>
 
-// To get timeZone from main file
-extern int timeZone;
+namespace Project
+{
+  // To get timeZone from main file
+  // extern int timeZone;
 
-// Wifi ssid and password
-extern char ssid[];
-extern char pass[];
+  // Wifi ssid and password
+  extern char ssid[];
+  extern char pass[];
 
-extern char calendarURL[];
+  extern char calendarURL[];
 
 #ifndef NETWORK_H
 #define NETWORK_H
 
-// All functions defined in Network.cpp
+  // All functions defined in Network.cpp
 
-class Network
-{
-public:
-  // Functions we can access in main file
-  void begin();
-  bool getData(String *data);
+  class Network
+  {
+  public:
+    // Functions we can access in main file
+    void begin();
+    void waitForConnection();
 
-private:
-  // Functions called from within our class
-  void setTime();
-};
+  private:
+    // Functions called from within our class
+    void setTime();
+  };
+}
 
 #endif

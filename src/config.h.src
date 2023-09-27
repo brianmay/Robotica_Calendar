@@ -1,18 +1,25 @@
-// CHANGE HERE ---------------
+namespace Project
+{
+    // CHANGE HERE ---------------
+    char ssid[] = "";
+    char pass[] = "";
 
-char ssid[] = "";
-char pass[] = "";
-char calendarURL[] = "";
+    // Australia Eastern Time Zone (Sydney, Melbourne)
+    TimeChangeRule aEDT = {"AEDT", First, Sun, Oct, 2, 660}; // UTC + 11 hours
+    TimeChangeRule aEST = {"AEST", First, Sun, Apr, 3, 600}; // UTC + 10 hours
+    Timezone timezone(aEDT, aEST);
 
-//Australia Eastern Time Zone (Sydney, Melbourne)
-TimeChangeRule aEDT = {"AEDT", First, Sun, Oct, 2, 660};    //UTC + 11 hours
-TimeChangeRule aEST = {"AEST", First, Sun, Apr, 3, 600};    //UTC + 10 hours
-Timezone timezone(aEDT, aEST);
+    // Add your MQTT Broker IP address, example:
+    char mqtt_server[] = "";
+    char mqtt_username[] = "";
+    char mqtt_password[] = "";
+    char mqtt_topic[] = "";
+}
 
 // Set to 3 to flip the screen 180 degrees
 #define ROTATION 0
 #define COLUMNS 5
-#define SCREEN_WIDTH  E_INK_WIDTH
+#define SCREEN_WIDTH E_INK_WIDTH
 #define SCREEN_HEIGHT E_INK_HEIGHT
 #define OUTSIDE_BORDER_WIDTH 3
 #define OUTSIDE_BORDER_TOP 30
@@ -22,9 +29,9 @@ Timezone timezone(aEDT, aEST);
 #define EVENT_SPACING_WIDTH 8
 #define EVENT_SPACING_HEIGHT 8
 #define HEADER_HEIGHT 30
-#define COLUMN_WIDTH ((int)(SCREEN_WIDTH-OUTSIDE_BORDER_WIDTH-OUTSIDE_BORDER_WIDTH)/COLUMNS)
+#define COLUMN_WIDTH ((int)(SCREEN_WIDTH - OUTSIDE_BORDER_WIDTH - OUTSIDE_BORDER_WIDTH) / COLUMNS)
 
 //---------------------------
 
 // Delay between API calls
-#define DELAY_MS 1 * 60000
+#define DELAY_MS 5 * 60000
