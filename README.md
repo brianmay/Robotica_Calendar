@@ -1,7 +1,3 @@
-Google Calendar
----------------
-This is the Google Calendar sample, with the following changes:
+# Robotica Calendar
 
-* Adopted to use platformio for building.
-* Less hardcoded values.
-* Split config into config.h file that is not checked in.
+This displays the robotica calendar for the next 5 days on an Inkplate device.
