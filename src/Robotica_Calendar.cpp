@@ -46,8 +46,9 @@ namespace Project
   enum status_t
   {
     pending,
-    started,
-    done
+    in_progress,
+    completed,
+    cancelled
   };
   // Struct for storing calender event info
   struct entry
@@ -317,10 +318,13 @@ namespace Project
     case pending:
       width = 1;
       break;
-    case started:
+    case in_progress:
       width = 2;
       break;
-    case done:
+    case completed:
+      width = 0;
+      break;
+    case cancelled:
       width = 0;
       break;
     }
@@ -415,9 +419,10 @@ namespace Project
       // Find all relevant event data.
       String summary = src_entry["title"];
       String importance = src_entry["importance"];
-      DateTime entry_start_time = src_entry["required_time"];
-      DatePeriod duration = src_entry["required_duration"];
-      DateTime entry_end_time = entry_start_time + duration;
+      String status_str = src_entry["status"];
+      DateTime entry_start_time = src_entry["start_time"];
+      // DatePeriod duration = src_entry["required_duration"];
+      DateTime entry_end_time = src_entry["end_time"];
 
       entry_start_time = entry_start_time.shift_timezone(local_tz);
       entry_end_time = entry_end_time.shift_timezone(local_tz);
@@ -428,14 +433,17 @@ namespace Project
       int day = entry_start_date - begin_date;
       status_t status;
 
-      // Set entry status
-      if (utc_datetime >= entry_end_time)
+      if (status_str == "Completed")
       {
-        status = done;
+        status = completed;
       }
-      else if (utc_datetime >= entry_start_time)
+      else if (status_str == "Cancelled")
       {
-        status = started;
+        status = cancelled;
+      }
+      else if (status_str == "InProgress")
+      {
+        status = in_progress;
       }
       else
       {
@@ -464,7 +472,7 @@ namespace Project
 
       Serial.println("DAY " + String(entry.day));
       Serial.println("summary " + entry.title);
-      Serial.println("status " + String(entry.status));
+      Serial.println("status " + status_str + " " + String(entry.status));
       Serial.println("start " + entry.start_time.as_str());
       Serial.println("start " + entry.start_date.as_str());
       Serial.println("end " + entry.end_time.as_str());
