@@ -289,23 +289,24 @@ namespace Project
     display.setFont(&FreeSans9pt7b);
 
     // Print time
-    String time;
-    unsigned start_days = local_date - event.start_date;
-    time = event.start_time.format("%H:%M");
-
-    time = time + " to ";
-
-    unsigned end_days = event.end_date - local_date;
-    if (end_days > 0)
     {
-      time = time + event.end_time.format("%H:%M") + "+" + String(end_days) + " days";
-    }
-    else
-    {
-      time = time + event.end_time.format("%H:%M");
-    }
+      String time;
+      unsigned start_days = local_date - event.start_date;
+      time = event.start_time.format("%H:%M");
+      if (start_days > 0)
+      {
+        time = time + "-" + String(start_days);
+      }
 
-    display.print(time);
+      unsigned end_days = event.end_date - local_date;
+      time = time + " to " + event.end_time.format("%H:%M");
+      if (end_days > 0)
+      {
+        time = time + "+" + String(end_days);
+      }
+
+      display.print(time);
+    }
 
     int bx1 = x1 + 1;
     int by1 = y1;
